@@ -11,6 +11,6 @@ dune build
 
 2. Run the project
 ```bash
-dune exec hangman_ocaml
+dune exec hangman
 ```
 
