@@ -4,7 +4,7 @@ type game = {
   used_letters : char list;
   max_mistakes : int;
   mistakes : int;
-  guessed_letter : char;
+  guessed_letter : char option;
 }
 
 let init_game ~(word : string) ~(max_mistakes : int) : game =
@@ -14,82 +14,75 @@ let init_game ~(word : string) ~(max_mistakes : int) : game =
     used_letters = [];
     max_mistakes;
     mistakes = 0;
-    guessed_letter = ' ';
+    guessed_letter = None;
   }
 
-let zero_mistake_hangman = "qwe"
-let one_mistake_hangman = "qwe"
-let two_mistake_hangman = "qwe"
-let three_mistake_hangman = "qwe"
-let four_mistake_hangman = "qwe"
-let five_mistake_hangman = "qwe"
-let six_mistake_hangman = "qwe"
+let hangman_stages =
+  [
+    "\n  +---+\n  |   |\n      |\n      |\n      |\n      |\n=========\n";
+    "\n  +---+\n  |   |\n  0   |\n      |\n      |\n      |\n=========";
+    "\n  +---+\n  |   |\n  0   |\n  |   |\n      |\n      |\n=========";
+    "\n  +---+\n  |   |\n  0   |\n /|   |\n      |\n      |\n=========";
+    "\n  +---+\n  |   |\n  0   |\n /|\\  |\n      |\n      |\n=========";
+    "\n  +---+\n  |   |\n  0   |\n /|\\  |\n /    |\n      |\n=========";
+    "\n  +---+\n  |   |\n  0   |\n /|\\  |\n / \\  |\n      |\n=========";
+  ]
 
-let print_hangman (game : game) : game =
-  (match game.mistakes with
-  | 0 -> print_string zero_mistake_hangman
-  | 1 -> print_string one_mistake_hangman
-  | 2 -> print_string two_mistake_hangman
-  | 3 -> print_string three_mistake_hangman
-  | 4 -> print_string four_mistake_hangman
-  | 5 -> print_string five_mistake_hangman
-  | 6 -> print_string six_mistake_hangman
-  | _ -> print_string "Error while displaying hangman");
-  game
+let print_hangman (game : game) : unit =
+  print_endline (List.nth hangman_stages game.mistakes);
+  flush stdout
 
-let print_state (game : game) : game =
+let print_state (game : game) : unit =
   Printf.printf
-    "word = %s, mistakes = %s, max_mistakes = %s, used_letters = %s\n"
-    game.word_mask
-    (string_of_int game.mistakes)
-    (string_of_int game.max_mistakes)
+    "word = %s, mistakes = %d, max_mistakes = %d, used_letters = %s\n"
+    game.word_mask game.mistakes game.max_mistakes
     (String.of_seq (List.to_seq game.used_letters));
-  game
+  flush stdout
 
-let rec get_user_input (game : game) : game =
+let rec get_user_input (game : game) : char =
   Printf.printf "Please enter a letter: ";
+  flush stdout;
 
-  let input = input_char stdin in
+  let input = input_line stdin in
 
-  if List.mem input game.used_letters then (
+  if List.mem input.[0] game.used_letters then (
     print_endline "You already used this letter, try a new one";
     get_user_input game)
-  else
-    {
-      game with
-      guessed_letter = input;
-      used_letters = input :: game.used_letters;
-    }
+  else input.[0]
 
 let contains_char str target_char = String.exists (fun c -> c = target_char) str
 
 let get_new_word_mask (game : game) : string =
-  let new_mask =
-    String.mapi
-      (fun i c -> if c = game.guessed_letter then c else game.word_mask.[i])
-      game.word
+  String.mapi
+    (fun i c ->
+      match game.guessed_letter with
+      | Some guessed_char -> if c = guessed_char then c else game.word_mask.[i]
+      | None -> game.word_mask.[i])
+    game.word
+
+let guess_letter (game : game) (letter : char) : game =
+  let updated_game =
+    {
+      game with
+      guessed_letter = Some letter;
+      used_letters = letter :: game.used_letters;
+    }
   in
-  new_mask
+  if contains_char game.word letter then
+    let new_word_mask = get_new_word_mask updated_game in
+    { updated_game with word_mask = new_word_mask }
+  else { updated_game with mistakes = game.mistakes + 1 }
 
-let guess_letter (game : game) : game =
-  if contains_char game.word game.guessed_letter then
-    let new_word_mask = get_new_word_mask game in
-    { game with word_mask = new_word_mask }
-  else { game with mistakes = game.mistakes + 1 }
-
-let is_game_lost (game : game) : bool =
-  if game.mistakes >= game.max_mistakes then true else false
-
-let is_game_won (game : game) : bool =
-  if contains_char game.word_mask '*' then false else true
-
-let is_game_continues (game : game) : bool =
-  not (is_game_lost game || is_game_won game)
+let is_game_lost (game : game) : bool = game.mistakes >= game.max_mistakes
+let is_game_won (game : game) : bool = not (contains_char game.word_mask '*')
 
 let rec start_game (game : game) : unit =
-  if is_game_continues game then
-    game |> print_hangman |> print_state |> get_user_input |> guess_letter
-    |> start_game
+  if not (is_game_lost game || is_game_won game) then
+    let () = print_hangman game in
+    let () = print_state game in
+    let letter = get_user_input game in
+    let updated_game = guess_letter game letter in
+    start_game updated_game
   else if is_game_lost game then
-    Printf.printf "Unfortunately you're lost. The word was: %s\n" game.word
+    Printf.printf "Unfortunately you lost. The word was: %s\n" game.word
   else print_endline "You won, congrats"
