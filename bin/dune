@@ -1,0 +1,4 @@
+(executable
+ (public_name hangman_ocaml)
+ (name main)
+ (libraries hangman_ocaml))
