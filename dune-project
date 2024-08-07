@@ -1,26 +1,23 @@
 (lang dune 3.16)
 
-(name hangman_ocaml)
+(name hangman)
 
-(generate_opam_files true)
+(generate_opam_files false)
 
 (source
- (github username/reponame))
+ (github krios2146/hangman_ocaml))
 
-(authors "Author Name")
+(authors "Vladimir Kidyaev")
 
-(maintainers "Maintainer Name")
+(maintainers "Vladimir Kidyaev")
 
-(license LICENSE)
+(license MIT)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/krios2146/hangman_ocaml)
 
 (package
- (name hangman_ocaml)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
- (tags
-  (topics "to describe" your project)))
+ (name hangman)
+ (synopsis "A simple hangman (word guessing) game with a console UI ")
+ (depends ocaml dune))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
